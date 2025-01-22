@@ -2,11 +2,10 @@ module Data.String.Parser.CSV
 import Data.Either
 import Data.List1
 import Data.Maybe
+import Data.String
 import Data.String.Parser
 import Interlude.Monad
 import System.File
-
-import Debug.Trace
 
 public export
 CSVRecord: Type
@@ -46,6 +45,7 @@ csvRecord: Monad m => ParseT m (List1 String)
 csvRecord = do
     first <- field
     more <- some (comma *> field) <|> pure []
+    when (null first && null more) (fail "empty lines aren't records")
     ignore (optional crlf)
     eos
     pure (first ::: more)
@@ -63,10 +63,10 @@ loadFile filepath = do
                 | True => pure Nothing
             Right line <- fGetLine f
                 | Left err => pure (Just (Left (show err)))
-            trace "got a line: \{line}" (pure ())
-            pure$ case (map fst (parse csvRecord line)) of
-                 Left  err => Just (Left err)
-                 Right row => trace "Successful parse" $Just (Right (rs :< row))
+            pure$ case (map fst (parse (optional csvRecord) line)) of
+                Left   err       => Just (Left err)
+                Right (Just row) => Just (Right (rs :< row))
+                Right  Nothing   => Just (Right rs)
     closeFile f
     case parseResult of
         Left  err     => pure (Left err)
