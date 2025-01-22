@@ -79,13 +79,14 @@ loadFile filepath = do
 
 namespace Test
 
+    ||| Demonstrates use of CSV.loadFile.
     export
     echoFile: String -> IO ()
     echoFile filepath = do
         Right rs <- CSV.loadFile filepath
             | Left err => putStrLn (fastConcat ["error: ", err])
         for_ rs $ \r => do
-            putStr "Entry:\n"
+            putStr "Record:\n"
             traverse_ putStrLn r
             putChar '\n'
 
