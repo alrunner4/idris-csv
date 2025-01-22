@@ -7,12 +7,13 @@ import Data.String.Parser
 import Interlude.Monad
 import System.File
 
+||| Records have at least one field.
 public export
 CSVRecord: Type
 CSVRecord = List1 String
 
 ||| NOTE: newlines within quoted fields are not currently supported.
-export loadFile: HasIO m => String -> m (Either String (List (List1 String)))
+export loadFile: HasIO m => String -> m (Either String (List CSVRecord))
 
 comma: Applicative m => ParseT m String
 comma = cast <$> char ','
@@ -26,21 +27,28 @@ textdata = pack <$> some (satisfy (\c =>
   (c >= chr 0x23 && c <= chr 0x2B) ||
   (c >= chr 0x2D && c <= chr 0x7E)))
 
+cr, lf: Monad m => ParseT m Char
+cr = char (chr 0x0D)
+lf = char (chr 0x0A)
+
 escaped: Monad m => ParseT m String
 escaped = do
     ignore (char '"')
-    f <- fastConcat <$> some (textdata <|> comma <|> (cast <$> char '\n') <|> doubleDoubleQuote)
+    f <- fastConcat <$> some (textdata <|> comma <|> map cast cr <|> map cast lf <|> doubleDoubleQuote)
     ignore (char '"')
     pure f
 
 field: Monad m => ParseT m String
 field = escaped <|> map lowerMaybe (optional textdata)
 
-crlf: Monad m => ParseT m ()
+crlf: Monad m => ParseT m String
 crlf = do
-    ignore (optional (char (chr 0x0D)))
-    ignore (char (chr 0x0A))
+    cr <- (lowerMaybe . map cast) <$> optional cr
+    lf <- map cast lf
+    pure (cr ++ lf)
 
+||| While CSV.loadFile will not process records containing line breaks, csvRecord will.
+export
 csvRecord: Monad m => ParseT m (List1 String)
 csvRecord = do
     first <- field
@@ -49,9 +57,6 @@ csvRecord = do
     ignore (optional crlf)
     eos
     pure (first ::: more)
-
-parseRecord: Monad m => String -> m (Either String (List1 String))
-parseRecord s = map (map fst) (parseT csvRecord s)
 
 loadFile filepath = do
     Right f <- openFile filepath Read
