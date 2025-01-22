@@ -1,0 +1,4 @@
+package csv
+authors = "alrunner4@gmail.com"
+depends = contrib, interlude
+modules = Data.String.Parser.CSV
