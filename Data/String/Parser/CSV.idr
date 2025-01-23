@@ -1,11 +1,12 @@
 module Data.String.Parser.CSV
 import Data.Either
-import Data.List1
 import Data.Maybe
 import Data.String
 import Data.String.Parser
 import Interlude.Monad
 import System.File
+
+import public Data.List1
 
 ||| Records have at least one field.
 public export
