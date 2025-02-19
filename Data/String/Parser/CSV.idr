@@ -69,7 +69,7 @@ loadFile filepath = do
                 | True => pure Nothing
             Right line <- fGetLine f
                 | Left err => pure (Just (Left (show err)))
-            pure$ if null line
+            pure$ if null (trim line)
                      then Just (Right rs)
                      else case (map fst (parse csvRecord line)) of
                                Left  err => Just (Left err)
