@@ -35,7 +35,7 @@ lf = char (chr 0x0A)
 escaped: Monad m => ParseT m String
 escaped = do
     ignore (char '"')
-    f <- fastConcat <$> some (textdata <|> comma <|> map cast cr <|> map cast lf <|> doubleDoubleQuote)
+    f <- fastConcat <$> map lowerMaybe (optional $ some (textdata <|> comma <|> map cast cr <|> map cast lf <|> doubleDoubleQuote))
     ignore (char '"')
     pure f
 
@@ -50,7 +50,7 @@ crlf = do
 
 ||| While CSV.loadFile will not process records containing line breaks, csvRecord will.
 export
-csvRecord: Monad m => ParseT m (List1 String)
+csvRecord: Monad m => ParseT m CSVRecord
 csvRecord = do
     first <- field
     more <- some (comma *> field) <|> pure []
@@ -69,10 +69,11 @@ loadFile filepath = do
                 | True => pure Nothing
             Right line <- fGetLine f
                 | Left err => pure (Just (Left (show err)))
-            pure$ case (map fst (parse (optional csvRecord) line)) of
-                Left   err       => Just (Left err)
-                Right (Just row) => Just (Right (rs :< row))
-                Right  Nothing   => Just (Right rs)
+            pure$ if null line
+                     then Just (Right rs)
+                     else case (map fst (parse csvRecord line)) of
+                               Left  err => Just (Left err)
+                               Right row => Just (Right (rs :< row))
     closeFile f
     case parseResult of
         Left  err     => pure (Left err)
