@@ -56,7 +56,6 @@ csvRecord = do
     more <- some (comma *> field) <|> pure []
     when (null first && null more) (fail "empty lines aren't records")
     ignore (optional crlf)
-    eos
     pure (first ::: more)
 
 loadFile filepath = do
