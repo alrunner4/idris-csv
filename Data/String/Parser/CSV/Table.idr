@@ -1,5 +1,4 @@
 module Data.String.Parser.CSV.Table
-import Data.HVect
 import Data.List
 import Data.Maybe
 import Data.SortedMap.Dependent
